@@ -1,0 +1,21 @@
+services:
+  feedbackapp:
+    container_name: feedbackapp
+    image: feedback-image:v1
+    ports:
+      - "3000:3002"
+      # - "3001:3002"
+    volumes:
+      - /app/node_modules
+      - feedback:/app/feedback
+      - ./pages:/app/pages
+    tmpfs:
+      - /app/temp
+    env_file: .env
+    environment:
+      PORT: 3002
+    #environment:
+    #- PORT=3002
+
+volumes:
+  feedback:

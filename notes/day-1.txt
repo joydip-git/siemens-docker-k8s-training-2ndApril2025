@@ -1,0 +1,91 @@
+https://forms.gle/usqX6MyYnBc5LULk6
+
+github repository:
+-------------------------
+https://github.com/joydip-git/siemens-docker-k8s-training-2ndApril2025
+
+
+application => deployment
+
+docker => image and container
+
+dockerfile => image
+
+docker CLI, docker engine, docker compose etc.
+
+1. windows => windows kernel + linux kernel (WSL)
+	WSL => Windows Sub-system for Linux
+2. Mac
+3. Linux => 
+
+O/S => Kernel
+Hypervisors => Type 1 and Type 2
+
+1. container layer
+	- does not survive the container crash and removal
+	- can't be shared among multiple copy of the same application running in different container
+
+2. Mounts
+	a. volume: managed by docker
+		i. anonymous volume: 
+		no name to this volume. 
+		can be shared among multiple containers. 
+		does not survice the removal of container
+
+		ii. named volume:
+		volume with a name chosen by you
+		can be shared among multiple containers  
+		does survice the removal of container
+		has to be removed manually
+
+		A. create manually and then share across multipl containers running same app
+		>docker volume create <vol-name>
+		>docker run -v <volume-name>:<app-dir-path> ...
+		B. get it auto-generated very first time when a container is starting
+		>docker run -v <volume-name>:<app-dir-path> ...
+
+
+	b. bind mount: 
+	map container application folder with host machine folder path
+	bind mounts are NOT managed by docker
+	
+	c. temporary file system (tmpfs)
+	in-memory storage for the application running in the container. it does not persist data if the container is stopped, let alone remove. can't be shared.
+
+
+supplying environment variable values to docker container (and from there these values will be supplied to the application process)
+1. through ENV command in Dockerfile
+ex: ENV PORT=3001
+
+2. through -e flag while creating and running the container
+>docker run -e PORT=3001 ....
+
+3. supply them from a environment file while creating and running the container
+>docker run --env-file <env-file>
+
+dockerfile ENV<-- overwritten by ENV in --env-file <-- overwritten by ENV passed by -e
+
+
+docker run 
+--rm 
+-d 
+--name feedbackapp 
+-v /app/node_modules 
+-v feedback:/app/feedback 
+--tmpfs /app/temp 
+-v D:/training/siemens-docker-k8s-training
+-2ndApril2025/codes/day-1/data-volumes-app/pages:/app/pages 
+-p 3000:3002 
+--env-file .env 
+-e PORT=3002 
+
+feedback-image:v1
+
+
+
+
+
+
+
+
+
