@@ -1,0 +1,30 @@
+1. host machine wants to interact with an app running inside a docker container
+	-p 3000:3001
+
+2. app running inside a docker container wants to interact with a service running in the host machine
+	instead of machine name (in order to access the service running in the host machine) use this DNS name: host.docker.internal
+
+3. app running inside a docker container wants to send request to www
+	no extra configuration required, as containerized apps can simply send request to WWW.
+
+4. app running inside a docker container wants to interact with another app running inside another docker container
+	1. using IP adsress of the container
+	docker always creates an IP address for every container that is managing.
+	you can use the IP address of any container to get connected to (to send request to) from another container
+
+	2. using DNS name of the container
+	docker provides network driver (bridge) for interacion between the containers (also provides a default network too)
+	you can create a new network under bridge driver and connect the containers with it using --network flag
+	the network will provide DNS name for each container to interact with.
+
+network drivers: 
+	host (also the network named, host)
+	bridge (also the network named, bridge)
+	none (complete isolation)
+	ipvlan
+	maclan
+
+
+
+
+
