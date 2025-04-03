@@ -4,6 +4,12 @@ Create Network
 
 docker network create goals-net
 
+-----------------------------
+create named volumes
+-----------------------------------
+docker volume create data
+docker volume create logs
+
 ---------------------
 Run MongoDB Container (inside docker-compose-app folder)
 ---------------------
@@ -16,6 +22,8 @@ docker run --name mongodb \
   -d \
   --network goals-net \
   mongo
+ 
+ or
 
   docker run --name mongodb \
   --env-file ./env/mongo.env \
@@ -48,6 +56,8 @@ docker run --name goals-backend \
   --network goals-net \
   -p 3001:3001 \
   goals-node
+
+or
 
   docker run --name goals-backend \
   --env-file ../env/backend.env
