@@ -1,0 +1,100 @@
+Question: why hyper-v and wsl are required on windows OS for docker desktop to work properly?
+
+Answer:
+Docker Desktop for Windows works with WSL2 for Win11 home, pro and enterprise .
+Hyper-V requires a Win11 pro or enterprise version.
+The WSL2 backend is recommended over the HyperV-based WSL1 backend.
+
+Support for Docker on Windows is not native, Docker was written to be run on Linux initially. So the requirements for running Docker CE on Windows are:
+
+Virtualization must be enabled since docker-ce creates a VM on Hyper-V. Since all hypervisors require hardware virtualization to be enabled, Hyper-V in this matter is not exceptional. The Docker for Windows installer will enable Hyper-V for you, if needed, and restart your machine.
+
+For older Windows systems that don’t support hardware virtualization, it’s recommended to use Docker Toolbox which uses Oracle Virtualbox to spin up VMs that will host docker containers instead of Hyper-V.
+
+details => 
+
+Answer-1:
+the following paragraphs are from the following link:
+https://cognitivewaves.wordpress.com/docker-container-linux-windows/
+
+snippets:
+Docker evolved on Linux. Much of the confusion arises with Docker trying to support containerization on Windows.
+
+A container is considered “native”, if it can run directly on the host operating system.
+
+Linux Container: A Linux application that runs in an isolated Linux environment.
+This same container can be run on Windows using virtualization to emulate a Linux environment, but the container is still running on Linux. This virtualization can be
+
+VirtualBox (Docker Toolbox)
+Hyper-V backend (Docker Desktop)
+WSL2 backend (Docker Desktop)
+Windows (Server) Container: A Windows application that runs in an isolated Windows environment.
+
+Process Isolation - This is the “traditional” isolation mode for containers. It is approximately the same as how Linux containers run on Linux
+Hyper-V isolation - This isolation mode offers enhanced security and broader compatibility between host and container versions.
+As you can see, Hyper-V can be used to run even native Windows containers, which is generally a source of confusion.
+
+Further, docker-machine is a superseded product.
+
+Machine was the only way to run Docker on Mac or Windows previous to Docker v1.12. Starting with the beta program and Docker v1.12, Docker Desktop for Mac and Docker Desktop for Windows are available as native apps and the better choice for this use case on newer desktops and laptops.
+
+
+Answer-2:
+
+from MSDN: (https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-containers#prerequisites)
+
+WSL can run distributions in both WSL version 1 or WSL 2 mode. You can check this by opening PowerShell and entering: wsl -l -v. Ensure that the your distribution is set to use WSL 2 by entering: wsl --set-version <distro> 2. Replace <distro> with the distro name (e.g. Ubuntu 18.04).
+
+In WSL version 1, due to fundamental differences between Windows and Linux, the Docker Engine couldn't run directly inside WSL, so the Docker team developed an alternative solution using Hyper-V VMs and LinuxKit. However, since WSL 2 now runs on a Linux kernel with full system call capacity, Docker can fully run in WSL 2. This means that Linux containers can run natively without emulation, resulting in better performance and interoperability between your Windows and Linux tools.
+
+In a nutshell:
+WSL2 will replace Hyper-V.
+We used to need both Hyper-V and WSL. Then we could use WSL2 only. And Hyper-V is no more needed so they will abandon it to focus on WSL2.
+
+Question: how to clean up your system from docker images?
+Answer: https://forum.codewithmosh.com/t/docker-hyper-v-instead-of-wsl-2/23327/5
+
+
+Question: How does containers run on Windows OS?
+Answer: https://learn.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/hyperv-container
+
+Learn more about containers:
+https://learn.microsoft.com/en-us/virtualization/windowscontainers/about/
+
+clear docker cache: (https://depot.dev/blog/docker-clear-cache)
+---------------------------------------
+How much disk space is Docker using?
+Answer: 
+We can use the "docker system df" command to get a breakdown of how much disk space is being taken up by various artifacts.
+
+
+https://labs.play-with-docker.com/
+
+
+How come the docker is working without any linux distro on windows? (link => https://www.reddit.com/r/docker/comments/p4sml9/if_docker_for_windows_requires_a_linux_distro_why/?rdt=45895#:~:text=Docker%20on%20Windows%20runs%20in,natively%20on%20a%20Linux%20Machine.)
+------------------------------------------------------------------------------
+
+Docker can work without a Linux distro installed if you use Docker Desktop on Windows, macOS, or Linux. Docker Desktop is an application that lets you build and share containerized applications and microservices. 
+If you're using Docker Desktop on Windows, you can use the docker CLI and UI without any additional Linux distros. However, for the best developer experience, you can install at least one additional distro and enable Docker support.
+
+If you are thinking of a linux distro as an OS, which is not correct. A linux distro is a set of packages (files) that are distributed with the linux kernel. The linux kernel is itself an OS, the primary components of which are the process scheduler and the memory manager.
+
+Containers all use the host's kernel. Or another way to state the same thing, containers are just processes on the host, the difference for docker is that these processes have been isolated, using kernel level features, from one another.
+
+Because the point of containers is that they only share the kernel of the host. So to run a Linux container you need a Linux host. Beyond that the container needs to provide everything else.
+
+Docker on Windows runs in a virtual machine as docker needs a Linux kernel to run. And each container just brings a highly stripped userspace which are isolated from each other through cgroups. Advantage of this is that you don‘t need an VM overhead if you run docker natively on a Linux Machine. Windows needs a VM to support docker. The same with macOS.
+
+Hyper-V is a fine Type-1 Hypervisor. This is not Virtual Box. The VMs run on the same layer on Hardware as the Windows10. Dualboot is super old-school nowadays and a needless hassle.
+
+If one does not like WSL, you can also virtualize a normal Linux in Hyper-V. Plenty of businesses run their production Linux servers on Hyper-V, although Windows Server not Windows 10. It's good enough for home lab work.
+
+The only significant performance penalty with Docker on Windows, is with mounted folders, because they are on Windows NTFS Volume and everything needs to be translated. The speed is still fast enough for almost all uses. The only situation where it bit me was playing 4k videos which were mounted from a NTFS folder.
+
+Docker volumes run faster/normal speed, because volumes reside on the ext4 formatted VHD for the WSL VM.
+
+Issue: access denied for volumes in asp.net core application in docker conatiner
+Links:
+https://learn.microsoft.com/en-us/dotnet/core/compatibility/containers/8.0/app-user
+https://github.com/testcontainers/testcontainers-dotnet/issues/1171
+https://dev.to/rimelek/everything-about-docker-volumes-1ib0#avoid-accidental-data-loss-on-volumes

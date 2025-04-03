@@ -1,0 +1,278 @@
+Issue with manual deployment:
+-------------------------------------
+containers might crash and wull need replacement
+you can't do that manually
+
+we might need more containers due to more workload => scaling up
+
+for example network requests coming to an application running in a container
+we also need to distribute requests to multiple containers in this case
+
+we might need not scale down containers due to less workload
+
+or a container which process images. in that case one container is not enough as that might long time to process one image itself
+we need to create more containers
+
+in any case workload or requests should be evenly distributed among multiple containers
+
+benefit of kubernetes:
+---------------------------------
+any cloud provider specific configuration can be merged into kubernetes configuration file
+even if you go for another cloud service provider, you can replace previous cloud provider specific configuration by the new cloud provider specific configuration
+
+what kubernetes is:
+--------------------------
+It is collection of tools and concepts that can help us with deploying multiple containers anywhere
+
+Kubectl: a tool to provide instruction to the custer. as for example if you need more pods the instruction wil be send to the master node in the cluster and then that instructin will be send the worker node to create more pods.
+In a nutshell, kubectl is the tool to talk to the cluster to set keubernetes.
+In case of cloud, the kubectl will be in our local machine, where the cluster will be set up in the cloud.
+
+minikube: to set up a dummy cluster in the local machine. it uses a VM in your machine to set up the cluster. 
+
+1. install chocolatey
+2. install kubectl using chocolatey
+3. install minikube using chocolatey
+change to user path: $env:UserProfile (in powershell)
+
+before starting minikube:
+you can start minikube to set up a cluster, use the command: >minikube start --driver=<driver-name>
+for example: >minikube start --driver=docker (on windows machine it will be VM+container)
+1. check which OS is being used by docker: >docker info --format '{{.OSType}}'
+
+in case minikube image pull is stuck run the following command to delete any preexisting minikube cluster and oher things
+>minikube delete --all --purge
+
+
+Pod object:
+---------------------
+smallest unit in K8s
+can run one or multiple containers
+can have volumes, shared by containers
+will have an cluster-internal IP
+contaniers inside a pod can communicate via "localhost"
+pods are tiny layers around containers. Just like any container, if a pod is replaced or renoved, all data or shared resources will be lost. 
+note: there are ways to persist them
+
+Deployment:
+----------------
+the one which controls the pods
+
+Issue with IP address of Pods:
+---------------------------------
+every pod has an internal IP address, which is not possible to access from outsie the cluster and another problem is subject to change in case the pod is replaced
+
+
+Service:
+------------------
+this groups the Pods with a shared IP and you can reach any pod in that service using that unchangable IP address
+service can also expose that IP address outside the cluster too, not only inside the cluster
+
+
+1. create deployment
+>kubectl create deployment <name> --image=<image-to-pull>
+note: do not mention the local image name (image in the local machine) as the pod will run on a worker node which is different from your local machine.
+
+Note: to delete a deployment
+ kubectl delete deployment kube-message-app
+deployment.apps "kube-message-app" deleted
+
+2. create a service:
+since the container running on the pod will not exposed to outside of the cluster, hence you need to create a service, which will create an inrernal IP for the pods grouped under that service, which tne can be expose to the outside of he cluster (this is unchangable IP, where as the IP of the pods are frequently changed)
+
+>kubectl expose deployment <deployment-name> --type=LoadBanalcer/ClusterIP/NorePort --port <application-port-number>
+
+this command will create a service with an IP for the pod.
+
+get all the services:
+>kubectl get services
+
+example:
+NAME               TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+kube-message-app   LoadBalancer   10.105.210.62   <pending>     3000:31928/TCP   2m17s
+kubernetes         ClusterIP      10.96.0.1       <none>        443/TCP          33m
+
+3. expose this IP outside the cluster ussing minikube:
+
+>minikube service <deployment-name>
+this commad will expose the cluster IP (http://192.168.49.2:31928) using a different IP (http://127.0.0.1:61949 ) to the outside the cluster.
+
+|-----------|------------------|-------------|---------------------------|
+| NAMESPACE |       NAME       | TARGET PORT |            URL            |
+|-----------|------------------|-------------|---------------------------|
+| default   | kube-message-app |        3000 | http://192.168.49.2:31928 |
+|-----------|------------------|-------------|---------------------------|
+* Starting tunnel for service kube-message-app.
+|-----------|------------------|-------------|------------------------|
+| NAMESPACE |       NAME       | TARGET PORT |          URL           |
+|-----------|------------------|-------------|------------------------|
+| default   | kube-message-app |             | http://127.0.0.1:61949 |
+|-----------|------------------|-------------|------------------------|
+* Opening service default/kube-message-app in default browser...
+! Because you are using a Docker driver on windows, the terminal needs to be open to run it.
+
+Note: to delete the service:
+> kubectl delete service kube-message-app
+service "kube-message-app" deleted
+
+>kubectl get services (only kubernetes service running)
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   169m
+
+4. scale up or dwon the pods:
+---------------------------------
+example =>
+
+PS C:\Users\joydip> kubectl scale deployment/kube-message-app --replicas=3
+deployment.apps/kube-message-app scaled
+
+PS C:\Users\joydip> kubectl get pods
+NAME                                READY   STATUS              RESTARTS   AGE
+kube-message-app-6d7d9cdc4c-5vlzw   1/1     Running             0          6s
+kube-message-app-6d7d9cdc4c-8w87f   1/1     Running             0          89m
+kube-message-app-6d7d9cdc4c-fvwpg   0/1     ContainerCreating   0          6s
+
+PS C:\Users\joydip> kubectl get deployments
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+kube-message-app   3/3     3            3           89m
+
+PS C:\Users\joydip> kubectl get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+kube-message-app-6d7d9cdc4c-5vlzw   1/1     Running   0          23s
+kube-message-app-6d7d9cdc4c-8w87f   1/1     Running   0          89m
+kube-message-app-6d7d9cdc4c-fvwpg   1/1     Running   0          23s
+
+PS C:\Users\joydip> kubectl scale deployment/kube-message-app --replicas=1
+deployment.apps/kube-message-app scaled
+
+PS C:\Users\joydip> kubectl get pods
+NAME                                READY   STATUS        RESTARTS   AGE
+kube-message-app-6d7d9cdc4c-5vlzw   1/1     Terminating   0          2m31s
+kube-message-app-6d7d9cdc4c-8w87f   1/1     Running       0          91m
+kube-message-app-6d7d9cdc4c-fvwpg   1/1     Terminating   0          2m31s
+
+Update deployment:
+--------------------------------
+1. first make changes to your code
+
+2. rebuild the image 
+>docker build -t joydipdocker/message-app:2 .
+
+note: use a different tag name, otherwise when you try to update the depployment by setting a new image, no effect will take place, since the kubernetes will see the tga name is unchanged, hence will think it is the same image, hence will not pull the image again.
+
+3. push the updated image to dockerhub
+
+>docker push joydipdocker/message-app
+this will create a new image and will push the same in the docker hub
+
+3. now update the deployment 
+>kubectl set image deployment/<deployment-name> <container-name>=<updated-image-to-pull>
+
+> kubectl set image deployment/kube-message-app message-app=joydipdocker/message-app:2
+
+here we need to mention the container name to redirect it to the new image,in case the image name has changed or tag updated.
+
+4. roll up the update:
+> kubectl rollout status deployment/<deployment-name>
+
+> kubectl rollout status deployment/kube-message-app
+deployment "kube-message-app" successfully rolled out
+
+5. check your application
+
+Rollout and history:
+-----------------------------------------------
+1. you can find out the history of rollouts for a particular deployment
+
+>kubectl rollout history deployment/kube-message-app
+
+deployment.apps/kube-message-app
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+
+2. you can find out the history of a particular revision rollout for a particular deployment
+
+> kubectl rollout history deployment/kube-message-app --revision=3
+
+deployment.apps/kube-message-app with revision #3
+Pod Template:
+  Labels:       app=kube-message-app
+        pod-template-hash=5ccf6cd6f6
+  Containers:
+   message-app:
+    Image:      joydipdocker/message-app:3
+    Port:       <none>
+    Host Port:  <none>
+    Environment:        <none>
+    Mounts:     <none>
+  Volumes:      <none>
+  Node-Selectors:       <none>
+  Tolerations:  <none>
+
+3. if you want to rollback to any previous revision:
+
+> kubectl rollout undo deployment/kube-message-app --to-revision=1
+
+deployment.apps/kube-message-app rolled back
+
+
+Note: to undo the previous deployment (unsuccessful) use the following command:
+>kubectl rollout undo deployment/kube-meesage-app
+
+Declarative kubernetes approach: (using configuration file)
+---------------------------------------------------------------------
+Depolyment:
+> kubectl apply -f .\deployment.yaml
+
+Service:
+> kubectl apply -f .\service.yaml
+service/backend created
+
+> kubectl get services
+NAME         TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+backend      LoadBalancer   10.109.63.130   <pending>     3000:31965/TCP   8s
+kubernetes   ClusterIP      10.96.0.1       <none>        443/TCP          4h51m
+
+Now expose this service though minikube to map it to a IP exposing the cluster IP
+
+> minikube service backend
+
+|-----------|---------|-------------|---------------------------|
+| NAMESPACE |  NAME   | TARGET PORT |            URL            |
+|-----------|---------|-------------|---------------------------|
+| default   | backend |        3000 | http://192.168.49.2:31965 |
+|-----------|---------|-------------|---------------------------|
+🏃  Starting tunnel for service backend.
+|-----------|---------|-------------|------------------------|
+| NAMESPACE |  NAME   | TARGET PORT |          URL           |
+|-----------|---------|-------------|------------------------|
+| default   | backend |             | http://127.0.0.1:61924 |
+|-----------|---------|-------------|------------------------|
+🎉  Opening service default/backend in default browser...
+❗  Because you are using a Docker driver on windows, the terminal needs to be open to run it.
+
+delete deployment: (by file names)
+>kubectl delete -f=deployment.yaml,service.yaml
+
+or, (by separate file name)
+>kubectl delete -f=deployment.yaml -f=service.yaml
+
+or, (by label => you must have a label for deployment)
+> kubectl delete deployment -l group               
+deployment.apps "kube-message-app" deleted
+
+delete service: (by service name)
+>kubectl delete sevice backend
+
+or, (by label name => create a label for the service)
+>kubectl delete service -l tier
+service "backend" deleted
+
+of, (by file name, if there is separate file created for service)
+>kubectl delete -f .\service.yaml
+
+or
+>kubectl delete deployment kube-message-app
+>kubectl delete service backend
