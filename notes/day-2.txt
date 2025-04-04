@@ -25,6 +25,10 @@ network drivers:
 	maclan
 
 
+Kubernetes networking:
+	browser -> [http://127.0.0.1:54093/] cluster (minikube)-> worker node [http://192.168.49.2:32660] -> [network(10.110.4.103)] -> pod (10.244.0.6) -> container internal port (32660:3000)
+
+
 
 
 

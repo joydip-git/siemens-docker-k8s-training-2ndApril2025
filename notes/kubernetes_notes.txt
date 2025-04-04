@@ -30,18 +30,18 @@ In case of cloud, the kubectl will be in our local machine, where the cluster wi
 
 minikube: to set up a dummy cluster in the local machine. it uses a VM in your machine to set up the cluster. 
 
+before everything else check the systeminfo:
+>systeminfo
+
 1. install chocolatey
-2. install kubectl using chocolatey
-3. install minikube using chocolatey
+2. install kubectl using chocolatey [choco install kubernetes-cli]
+3. install minikube using chocolatey [choco install minikube]
 change to user path: $env:UserProfile (in powershell)
 
 before starting minikube:
 you can start minikube to set up a cluster, use the command: >minikube start --driver=<driver-name>
-for example: >minikube start --driver=docker (on windows machine it will be VM+container)
+fo example: >minikube start --driver=docker (on windows machine it will be VM+container)
 1. check which OS is being used by docker: >docker info --format '{{.OSType}}'
-
-in case minikube image pull is stuck run the following command to delete any preexisting minikube cluster and oher things
->minikube delete --all --purge
 
 
 Pod object:
@@ -60,13 +60,41 @@ the one which controls the pods
 
 Issue with IP address of Pods:
 ---------------------------------
-every pod has an internal IP address, which is not possible to access from outsie the cluster and another problem is subject to change in case the pod is replaced
-
+every pod has an internal IP address, which is not possible to access from outside the cluster and another problem is its is also subject to change in case the pod is replaced
 
 Service:
 ------------------
 this groups the Pods with a shared IP and you can reach any pod in that service using that unchangable IP address
 service can also expose that IP address outside the cluster too, not only inside the cluster
+
+ClusterIP, NodePort, and LoadBalancer:
+--------------------------------------------
+ClusterIP, NodePort, and LoadBalancer are all types of Kubernetes services that allow communication between applications and clients.
+
+ClusterIP:
+The default service. 
+Used for internal communication between applications within a cluster. 
+It provides a stable IP address for communication. 
+However, it's not accessible from outside the cluster, which can be a problem for services that need to be exposed to the outside world. 
+
+NodePort:
+It's the preferred element for non-HTTP communication. 
+Used to expose applications to external clients by attaching to each node in the cluster and routing traffic through specific ports.
+However, it's not suitable for high-traffic applications because it doesn't provide load balancing or failover capabilities.
+It's often used during testing phases.
+
+LoadBalancer:
+It uses a load balancer implementation from your cloud provider.
+Used to distribute traffic across pod instances based on load. 
+It allows administrators to configure additional settings like scaling, firewalls, and routing. 
+However, it usually incurs additional costs.
+It allows external access through a single IP address with load balancing capabilities. 
+It's typically used in production environments. 
+
+ExternalName:
+This type of service maps the service to the contents of the externalName field (Ex: app.test.com). It does this by returning a value for the CNAME record.
+
+Note: The correct service to use depends on whether you need to expose a pod internally in a cluster, to external clients that have access to non-standard ports, or to external clients that require the scale and flexibility of dedicated load balancers
 
 
 1. create deployment
@@ -78,7 +106,7 @@ Note: to delete a deployment
 deployment.apps "kube-message-app" deleted
 
 2. create a service:
-since the container running on the pod will not exposed to outside of the cluster, hence you need to create a service, which will create an inrernal IP for the pods grouped under that service, which tne can be expose to the outside of he cluster (this is unchangable IP, where as the IP of the pods are frequently changed)
+since the container running on the pod will not be exposed to outside of the cluster, hence you need to create a service, which will create an inrernal IP for the pods grouped under that service, which tne can be expose to the outside of he cluster (this is unchangable IP, where as the IP of the pods are frequently changed)
 
 >kubectl expose deployment <deployment-name> --type=LoadBanalcer/ClusterIP/NorePort --port <application-port-number>
 
@@ -119,18 +147,38 @@ service "kube-message-app" deleted
 NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
 kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   169m
 
-4. scale up or dwon the pods:
+
+So, how does services work - full details:
+-------------------------------------------------
+A Kubernetes service can be used to easily expose an application deployed on a set of pods using a single endpoint. A service is both a REST object and an abstraction that defines:
+
+A set of pods
+A policy to access them
+
+Pods in a Kubernetes deployment are regularly created and destroyed, causing their IP addresses to change constantly. It will create discoverability issues for the deployed, application making it difficult for the application frontend to identify which pods to connect.
+
+This is where the strengths of Kubernetes services come into play: services keep track of the changes in IP addresses and DNS names of the pods and expose them to the end-user as a single IP or DNS.
+
+Kubernetes services utilize selectors to target a set of pods:
+
+For native Kubernetes applications (which use Kubernetes APIs for service discovery), the endpoint API will be updated whenever there are changes to the pods in the service.
+Non-native applications can use virtual-IP-based bridge or load balancer implementation methods offered by Kubernetes to direct traffic to the backend pods.
+Attributes of a Kubernetes service
+Here are general attributes of a service:
+
+A service is assigned an IP address (“cluster IP”), which the service proxies use.
+A service can map an incoming port to any targetPort. (By default, the targetPort is set to the same value of the port field, and it can be defined as a string.)
+The port number assigned to each name can vary in each backend pod. (For example, you can change the port number that pods expose in the next version of your backend software without breaking clients.)
+Services support TCP (default), UDP, and SCTP for protocols.
+Services can be defined with or without a selector.
+Services support a variety of port definitions
+
+4. scale up or doen the pods:
 ---------------------------------
 example =>
 
 PS C:\Users\joydip> kubectl scale deployment/kube-message-app --replicas=3
 deployment.apps/kube-message-app scaled
-
-PS C:\Users\joydip> kubectl get pods
-NAME                                READY   STATUS              RESTARTS   AGE
-kube-message-app-6d7d9cdc4c-5vlzw   1/1     Running             0          6s
-kube-message-app-6d7d9cdc4c-8w87f   1/1     Running             0          89m
-kube-message-app-6d7d9cdc4c-fvwpg   0/1     ContainerCreating   0          6s
 
 PS C:\Users\joydip> kubectl get deployments
 NAME               READY   UP-TO-DATE   AVAILABLE   AGE
@@ -151,6 +199,73 @@ kube-message-app-6d7d9cdc4c-5vlzw   1/1     Terminating   0          2m31s
 kube-message-app-6d7d9cdc4c-8w87f   1/1     Running       0          91m
 kube-message-app-6d7d9cdc4c-fvwpg   1/1     Terminating   0          2m31s
 
+PS C:\Users\joydip> kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+kub-message-app-7bc6946cb8-85vjj   1/1     Running   0          36s   10.244.0.8   minikube   <none>           <none>
+kub-message-app-7bc6946cb8-d7v7d   1/1     Running   0          36s   10.244.0.6   minikube   <none>           <none>
+kub-message-app-7bc6946cb8-lxz7n   1/1     Running   0          42m   10.244.0.3   minikube   <none>           <none>
+kub-message-app-7bc6946cb8-x72wj   1/1     Running   0          36s   10.244.0.7   minikube   <none>           <none>
+
+complete details about the scaling:
+-----------------------------------------------
+PS C:\Users\joydip> kubectl describe deployments/kub-message-app
+Name:                   kub-message-app
+Namespace:              default
+CreationTimestamp:      Tue, 03 Dec 2024 18:51:05 +0530
+Labels:                 app=kub-message-app
+Annotations:            deployment.kubernetes.io/revision: 1
+Selector:               app=kub-message-app
+Replicas:               4 desired | 4 updated | 4 total | 4 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=kub-message-app
+  Containers:
+   message-app:
+    Image:         joydipdocker/message-app:v1
+    Port:          <none>
+    Host Port:     <none>
+    Environment:   <none>
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Progressing    True    NewReplicaSetAvailable
+  Available      True    MinimumReplicasAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   kub-message-app-7bc6946cb8 (4/4 replicas created)
+Events:
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  42m   deployment-controller  Scaled up replica set kub-message-app-7bc6946cb8 to 1
+  Normal  ScalingReplicaSet  59s   deployment-controller  Scaled up replica set kub-message-app-7bc6946cb8 to 4 from 1
+
+check whether the service is also load balancing or not after scaling:
+--------------------------------------------------------------------------
+PS C:\Users\joydip> kubectl describe services/kub-message-app
+Name:                     kub-message-app
+Namespace:                default
+Labels:                   app=kub-message-app
+Annotations:              <none>
+Selector:                 app=kub-message-app
+Type:                     LoadBalancer
+IP Family Policy:         SingleStack
+IP Families:              IPv4
+IP:                       10.110.166.41
+IPs:                      10.110.166.41
+Port:                     <unset>  3000/TCP
+TargetPort:               3000/TCP
+NodePort:                 <unset>  31061/TCP
+Endpoints:                10.244.0.3:3000,10.244.0.6:3000,10.244.0.7:3000 + 1 more...
+Session Affinity:         None
+External Traffic Policy:  Cluster
+Internal Traffic Policy:  Cluster
+Events:                   <none>
+
 Update deployment:
 --------------------------------
 1. first make changes to your code
@@ -158,7 +273,7 @@ Update deployment:
 2. rebuild the image 
 >docker build -t joydipdocker/message-app:2 .
 
-note: use a different tag name, otherwise when you try to update the depployment by setting a new image, no effect will take place, since the kubernetes will see the tga name is unchanged, hence will think it is the same image, hence will not pull the image again.
+note: use a different tag name, otherwise when you try to update the deployment by setting a new image, no effect will take place, since the kubernetes will see the tag name is unchanged, hence will think it is the same image, hence will not pull the image again.
 
 3. push the updated image to dockerhub
 
