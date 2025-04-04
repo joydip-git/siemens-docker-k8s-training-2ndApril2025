@@ -1,0 +1,7 @@
+node_modules
+Dockerfile
+.git
+apitest.rest
+deployment.yaml
+docker-compose.yaml
+service.yaml

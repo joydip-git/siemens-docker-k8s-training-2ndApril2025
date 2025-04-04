@@ -1,21 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kube-message-app
+  name: kub-first-dep
+  labels:
+    app: kubdeployment
+    dep: kubfirstdep
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      app: kube-message-pod
+      app: kubfirstpod
+  replicas: 3
   template:
     metadata:
+      name: kub-first-pod
       labels:
-        app: kube-message-pod
+        app: kubfirstpod
+        podlabel: kubfirstpod
     spec:
       containers:
-        - name: kube-message-container
-          image: joydipdocker/message-app:v1
+        - name: kub-first-app
+          image: joydipdocker/kub-first-app:v1
+          imagePullPolicy: Always
           resources:
             limits:
               memory: "128Mi"
               cpu: "500m"
+            # requests:
+            #   memory: "128Mi"
+            #   cpu: "500m"

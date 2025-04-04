@@ -5,3 +5,5 @@ Cluster IP for all pods controllerd by the deployment which you "exposed"
 		[Pod IP: 10.244.0.12]
 
 Container Internal Port: 3000
+
+AUTH_SERVICE_SERVICE_HOST
